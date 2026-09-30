@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cotizador de Tortas Personalizadas</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js y OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    #canvas-container canvas {
+      border-radius: 1rem;
+      width: 100% !important;
+      height: 100% !important;
+      outline: none;
+    }
+  </style>
+</head>
+<body class="bg-amber-50 text-stone-800 min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-extrabold text-amber-900 tracking-tight">🍰 Cotizador de Tortas Artesanales</h1>
+      <p class="text-stone-600 mt-2">Diseña tu torta en 3D, calcula el presupuesto y envíanos tu pedido por WhatsApp</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- Visor 3D y Resumen -->
+      <div class="lg:col-span-5 flex flex-col gap-6">
+        <div class="bg-white p-4 rounded-2xl shadow-md border border-amber-100 flex flex-col items-center">
+          <div class="w-full flex justify-between items-center mb-2 px-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-amber-800">Vista Previa 3D Interactiva</span>
+            <span class="text-xs text-stone-400">Gira con el dedo o clic</span>
+          </div>
+          <div id="canvas-container" class="w-full h-72 sm:h-80 bg-stone-100 rounded-xl relative overflow-hidden"></div>
+          
+          <!-- Selector rápido de color de cobertura 3D -->
+          <div class="w-full mt-4">
+            <label class="block text-xs font-medium text-stone-600 mb-1">Color de Cobertura / Crema:</label>
+            <div class="flex items-center gap-3">
+              <input type="color" id="frostingColor" value="#FFFDD0" class="w-10 h-10 rounded cursor-pointer border border-stone-300" />
+              <span id="colorName" class="text-sm text-stone-700">Crema / Vainilla</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Resumen y Precios -->
+        <div class="bg-white p-6 rounded-2xl shadow-md border border-amber-100 space-y-4">
+          <h2 class="text-xl font-bold text-amber-950 border-b border-amber-100 pb-2">Resumen de Cotización</h2>
+          
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-stone-500">Molde:</span><span id="resumenMolde" class="font-medium text-right">-</span></div>
+            <div class="flex justify-between"><span class="text-stone-500">Queque:</span><span id="resumenQueque" class="font-medium text-right">-</span></div>
+            <div class="flex justify-between"><span class="text-stone-500">Relleno:</span><span id="resumenRelleno" class="font-medium text-right">-</span></div>
+            <div class="flex justify-between"><span class="text-stone-500">Pisos / Altura:</span><span id="resumenPisos" class="font-medium text-right">1 Piso</span></div>
+          </div>
+
+          <div class="pt-4 border-t border-dashed border-stone-200 space-y-2">
+            <div class="flex justify-between items-baseline">
+              <span class="text-lg font-bold text-stone-800">Total Estimado:</span>
+              <span id="precioTotal" class="text-3xl font-extrabold text-amber-700">S/ 0.00</span>
+            </div>
+            <div class="flex justify-between items-center text-xs text-amber-900 bg-amber-100/60 p-2 rounded-lg font-medium">
+              <span>📌 Adelanto requerido (50%):</span>
+              <span id="adelanto50" class="font-bold">S/ 0.00</span>
+            </div>
+          </div>
+
+          <div class="text-xs text-stone-500 space-y-1">
+            <p>• Los precios pueden variar según decoraciones temáticas o toppers adicionales.</p>
+            <p>• Delivery con costo adicional según zona.</p>
+          </div>
+
+          <button id="btnWhatsapp" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+            <span>Pedir por WhatsApp</span>
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario de Configuración -->
+      <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl shadow-md border border-amber-100 space-y-6">
+        <h2 class="text-2xl font-bold text-amber-950">Elige tus preferencias</h2>
+
+        <!-- Molde -->
+        <div>
+          <label class="block text-sm font-semibold text-stone-700 mb-2">1. Selecciona el molde y tamaño:</label>
+          <select id="selectMolde" class="w-full border border-stone-300 rounded-xl p-3 bg-stone-50 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            <!-- Rellenado por JS -->
+          </select>
+        </div>
+
+        <!-- Pisos -->
+        <div>
+          <label class="block text-sm font-semibold text-stone-700 mb-2">2. Estructura de la torta:</label>
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" class="piso-btn border-2 border-amber-500 bg-amber-50 text-amber-900 font-semibold py-2 rounded-xl text-center" data-pisos="1">1 Piso clásico</button>
+            <button type="button" class="piso-btn border border-stone-300 py-2 rounded-xl text-center text-stone-600 hover:border-amber-400 font-medium" data-pisos="2">2 Pisos (+S/ 35)</button>
+          </div>
+        </div>
+
+        <!-- Sabor de Queque -->
+        <div>
+          <label class="block text-sm font-semibold text-stone-700 mb-2">3. Sabor del queque:</label>
+          <select id="selectQueque" class="w-full border border-stone-300 rounded-xl p-3 bg-stone-50 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            <!-- Rellenado por JS -->
+          </select>
+        </div>
+
+        <!-- Relleno -->
+        <div>
+          <label class="block text-sm font-semibold text-stone-700 mb-2">4. Sabor del relleno:</label>
+          <select id="selectRelleno" class="w-full border border-stone-300 rounded-xl p-3 bg-stone-50 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            <!-- Rellenado por JS -->
+          </select>
+        </div>
+
+        <!-- Extras / Decoración básica -->
+        <div>
+          <label class="block text-sm font-semibold text-stone-700 mb-2">5. Acabados y detalles 3D:</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-stone-50">
+              <input type="checkbox" id="chkDrip" class="w-4 h-4 text-amber-600 rounded" />
+              <span>Goteo de Chocolate (Drip)</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-stone-50">
+              <input type="checkbox" id="chkFresas" class="w-4 h-4 text-amber-600 rounded" />
+              <span>Topping de Frutillas / Fresas</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Datos del Cliente -->
+        <div class="border-t border-stone-200 pt-6 space-y-4">
+          <h3 class="text-lg font-bold text-amber-950">Tus Datos de Contacto</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs text-stone-600 mb-1">Nombre Completo:</label>
+              <input type="text" id="clienteNombre" placeholder="Ej. Mariana Flores" class="w-full border border-stone-300 rounded-xl p-2.5 bg-stone-50 focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs text-stone-600 mb-1">Fecha de Entrega deseada:</label>
+              <input type="date" id="clienteFecha" class="w-full border border-stone-300 rounded-xl p-2.5 bg-stone-50 focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs text-stone-600 mb-1">Dedicatoria o temática especial (Opcional):</label>
+            <textarea id="clienteNotas" rows="2" placeholder="Ej. Feliz cumpleaños Sofía, detalles en tonos pastel..." class="w-full border border-stone-300 rounded-xl p-2.5 bg-stone-50 focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configura aquí tu número de WhatsApp con código de país (Ej: 51987654321 para Perú)
+    const MI_WHATSAPP = "51999999999";
+
+    // 1. Datos Base
+    const MOLDES = [
+      { id: "p12", nombre: "Pequeña 12 cm (4-6 porciones)", tipo: "redondo", diametro: 1.2, precio: 35 },
+      { id: "p14", nombre: "Pequeña 14 cm (6-8 porciones)", tipo: "redondo", diametro: 1.4, precio: 45 },
+      { id: "m16", nombre: "Mediana 16 cm (8-12 porciones)", tipo: "redondo", diametro: 1.6, precio: 60 },
+      { id: "m18", nombre: "Mediana 18 cm (12-15 porciones)", tipo: "redondo", diametro: 1.8, precio: 75 },
+      { id: "g20", nombre: "Grande 20 cm (15-20 porciones)", tipo: "redondo", diametro: 2.0, precio: 90 },
+      { id: "g22", nombre: "Grande 22 cm (20-25 porciones)", tipo: "redondo", diametro: 2.2, precio: 110 },
+      { id: "eg28", nombre: "Extra grande 28 cm (30-35 porciones)", tipo: "redondo", diametro: 2.8, precio: 150 },
+      { id: "c15", nombre: "Cuadrado 15x15 cm (15-20 porciones)", tipo: "cuadrado", diametro: 1.6, precio: 80 },
+      { id: "c20", nombre: "Cuadrado 20x20 cm (20-25 porciones)", tipo: "cuadrado", diametro: 2.1, precio: 115 }
+    ];
+
+    const QUEQUES = [
+      { id: "choc", nombre: "Chocolate", extra: 0 },
+      { id: "vain", nombre: "Vainilla", extra: 0 },
+      { id: "marm", nombre: "Marmolado", extra: 0 },
+      { id: "zana", nombre: "Zanahoria", extra: 5 },
+      { id: "nara", nombre: "Naranja", extra: 0 },
+      { id: "limo", nombre: "Limón", extra: 0 },
+      { id: "plat", nombre: "Plátano", extra: 5 },
+      { id: "chocob", nombre: "Chocobanana", extra: 5 },
+      { id: "moca", nombre: "Moca", extra: 5 },
+      { id: "limar", nombre: "Limón y arándanos", extra: 8 },
+      { id: "zanafs", nombre: "Zanahoria c/frutos secos", extra: 10 },
+      { id: "vainch", nombre: "Vainilla c/chips de chocolate", extra: 5 },
+      { id: "vainor", nombre: "Vainilla c/oreo", extra: 6 }
+    ];
+
+    const RELLENOS = [
+      { id: "mb", nombre: "Manjar blanco", extra: 0 },
+      { id: "mo", nombre: "Manjar de olla", extra: 4 },
+      { id: "cp", nombre: "Crema pastelera", extra: 0 },
+      { id: "cpl", nombre: "C. Pastelera de limón", extra: 4 },
+      { id: "cpc", nombre: "C. Pastelera de café", extra: 4 },
+      { id: "cpch", nombre: "C. Pastelera de chocolate", extra: 4 },
+      { id: "fudge", nombre: "Fudge de chocolate", extra: 5 },
+      { id: "merm", nombre: "Mermelada artesanal de fresas", extra: 5 },
+      { id: "gan", nombre: "Ganache de chocolate c/leche", extra: 8 }
+    ];
+
+    // Estado actual
+    let estado = {
+      molde: MOLDES[2],
+      queque: QUEQUES[0],
+      relleno: RELLENOS[0],
+      pisos: 1,
+      color: "#FFFDD0",
+      drip: false,
+      fresas: false
+    };
+
+    // 2. Poblado de selects
+    const selMolde = document.getElementById("selectMolde");
+    MOLDES.forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m.id;
+      opt.textContent = `${m.nombre} - S/ ${m.precio.toFixed(2)}`;
+      selMolde.appendChild(opt);
+    });
+    selMolde.value = estado.molde.id;
+
+    const selQueque = document.getElementById("selectQueque");
+    QUEQUES.forEach(q => {
+      const opt = document.createElement("option");
+      opt.value = q.id;
+      opt.textContent = `${q.nombre} ${q.extra > 0 ? `(+S/ ${q.extra})` : ""}`;
+      selQueque.appendChild(opt);
+    });
+
+    const selRelleno = document.getElementById("selectRelleno");
+    RELLENOS.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.id;
+      opt.textContent = `${r.nombre} ${r.extra > 0 ? `(+S/ ${r.extra})` : ""}`;
+      selRelleno.appendChild(opt);
+    });
+
+    // 3. Three.js: Configuración 3D
+    const container = document.getElementById("canvas-container");
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf6f5f2);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(0, 3, 5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2.05; // No ver debajo de la mesa
+    controls.minDistance = 2.5;
+    controls.maxDistance = 7;
+
+    // Luces
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff7ea, 0.85);
+    dirLight.position.set(4, 7, 3);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    // Plato de base
+    const platoGeo = new THREE.CylinderGeometry(1.9, 2.0, 0.08, 48);
+    const platoMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
+    const plato = new THREE.Mesh(platoGeo, platoMat);
+    plato.position.y = -0.04;
+    scene.add(plato);
+
+    // Grupo de la torta
+    const cakeGroup = new THREE.Group();
+    scene.add(cakeGroup);
+
+    function actualizarModelo3D() {
+      // Limpiar elementos anteriores
+      while (cakeGroup.children.length > 0) {
+        cakeGroup.remove(cakeGroup.children[0]);
+      }
+
+      const matTorta = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(estado.color),
+        roughness: 0.65
+      });
+
+      const alturaPiso = 0.9;
+      const baseEscala = estado.molde.diametro;
+
+      for (let i = 0; i < estado.pisos; i++) {
+        const factorPiso = i === 0 ? 1 : 0.65;
+        const radio = (baseEscala * factorPiso) / 2;
+        const posY = (alturaPiso / 2) + (i * alturaPiso);
+
+        let mesh;
+        if (estado.molde.tipo === "cuadrado") {
+          const ancho = baseEscala * factorPiso;
+          mesh = new THREE.Mesh(new THREE.BoxGeometry(ancho, alturaPiso, ancho), matTorta);
+        } else {
+          mesh = new THREE.Mesh(new THREE.CylinderGeometry(radio, radio, alturaPiso, 40), matTorta);
+        }
+        mesh.position.y = posY;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        cakeGroup.add(mesh);
+
+        // Capa de Drip de Chocolate opcional en el piso superior
+        if (estado.drip && i === estado.pisos - 1) {
+          const matDrip = new THREE.MeshStandardMaterial({ color: 0x3d1c06, roughness: 0.2 });
+          let dripMesh;
+          if (estado.molde.tipo === "cuadrado") {
+            const ancho = (baseEscala * factorPiso) * 1.02;
+            dripMesh = new THREE.Mesh(new THREE.BoxGeometry(ancho, 0.08, ancho), matDrip);
+          } else {
+            dripMesh = new THREE.Mesh(new THREE.CylinderGeometry(radio * 1.02, radio * 1.02, 0.08, 40), matDrip);
+          }
+          dripMesh.position.y = posY + (alturaPiso / 2) + 0.02;
+          cakeGroup.add(dripMesh);
+        }
+      }
+
+      // Topping opcional de fresas decorativas
+      if (estado.fresas) {
+        const fresaMat = new THREE.MeshStandardMaterial({ color: 0xc1121f, roughness: 0.3 });
+        const hojasMat = new THREE.MeshStandardMaterial({ color: 0x2d6a4f });
+        const numFresas = 6;
+        const radioFresas = (baseEscala * (estado.pisos > 1 ? 0.65 : 1)) / 3.2;
+        const alturaTecho = estado.pisos * alturaPiso;
+
+        for (let j = 0; j < numFresas; j++) {
+          const angulo = (j / numFresas) * Math.PI * 2;
+          const fx = Math.cos(angulo) * radioFresas;
+          const fz = Math.sin(angulo) * radioFresas;
+
+          const fMesh = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.16, 12), fresaMat);
+          fMesh.position.set(fx, alturaTecho + 0.08, fz);
+          fMesh.rotation.x = Math.PI;
+          cakeGroup.add(fMesh);
+        }
+      }
+    }
+
+    // Animación continua
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      cakeGroup.rotation.y += 0.002;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener("resize", () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // 4. Lógica de Precios y Actualizaciones
+    function actualizarCalculos() {
+      const extraPisos = estado.pisos === 2 ? 35 : 0;
+      const extraDrip = estado.drip ? 8 : 0;
+      const extraFresas = estado.fresas ? 12 : 0;
+
+      const total = estado.molde.precio + estado.queque.extra + estado.relleno.extra + extraPisos + extraDrip + extraFresas;
+      const adelanto = total * 0.5;
+
+      document.getElementById("resumenMolde").textContent = estado.molde.nombre.split("(")[0];
+      document.getElementById("resumenQueque").textContent = estado.queque.nombre;
+      document.getElementById("resumenRelleno").textContent = estado.relleno.nombre;
+      document.getElementById("resumenPisos").textContent = estado.pisos === 1 ? "1 Piso clásico" : "2 Pisos estructural";
+
+      document.getElementById("precioTotal").textContent = `S/ ${total.toFixed(2)}`;
+      document.getElementById("adelanto50").textContent = `S/ ${adelanto.toFixed(2)}`;
+
+      actualizarModelo3D();
+    }
+
+    // Eventos
+    selMolde.addEventListener("change", (e) => {
+      estado.molde = MOLDES.find(m => m.id === e.target.value);
+      actualizarCalculos();
+    });
+
+    selQueque.addEventListener("change", (e) => {
+      estado.queque = QUEQUES.find(q => q.id === e.target.value);
+      actualizarCalculos();
+    });
+
+    selRelleno.addEventListener("change", (e) => {
+      estado.relleno = RELLENOS.find(r => r.id === e.target.value);
+      actualizarCalculos();
+    });
+
+    document.querySelectorAll(".piso-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".piso-btn").forEach(b => {
+          b.classList.remove("border-2", "border-amber-500", "bg-amber-50", "text-amber-900", "font-semibold");
+          b.classList.add("border", "border-stone-300", "text-stone-600");
+        });
+        btn.classList.add("border-2", "border-amber-500", "bg-amber-50", "text-amber-900", "font-semibold");
+        btn.classList.remove("border-stone-300", "text-stone-600");
+        estado.pisos = parseInt(btn.dataset.pisos, 10);
+        actualizarCalculos();
+      });
+    });
+
+    document.getElementById("frostingColor").addEventListener("input", (e) => {
+      estado.color = e.target.value;
+      actualizarModelo3D();
+    });
+
+    document.getElementById("chkDrip").addEventListener("change", (e) => {
+      estado.drip = e.target.checked;
+      actualizarCalculos();
+    });
+
+    document.getElementById("chkFresas").addEventListener("change", (e) => {
+      estado.fresas = e.target.checked;
+      actualizarCalculos();
+    });
+
+    // 5. Envío a WhatsApp
+    document.getElementById("btnWhatsapp").addEventListener("click", () => {
+      const nombre = document.getElementById("clienteNombre").value.trim() || "Cliente";
+      const fecha = document.getElementById("clienteFecha").value || "Por coordinar";
+      const notas = document.getElementById("clienteNotas").value.trim() || "Ninguna";
+      const totalTxt = document.getElementById("precioTotal").textContent;
+      const adelantoTxt = document.getElementById("adelanto50").textContent;
+
+      let mensaje = `*¡HOLA! QUIERO COTIZAR ESTA TORTA* 🎂%0A%0A`;
+      mensaje += `👤 *Cliente:* ${encodeURIComponent(nombre)}%0A`;
+      mensaje += `📅 *Fecha requerida:* ${encodeURIComponent(fecha)}%0A%0A`;
+      mensaje += `🍰 *DETALLES DEL PEDIDO:*%0A`;
+      mensaje += `• *Molde:* ${encodeURIComponent(estado.molde.nombre)}%0A`;
+      mensaje += `• *Estructura:* ${estado.pisos} piso(s)%0A`;
+      mensaje += `• *Queque:* ${encodeURIComponent(estado.queque.nombre)}%0A`;
+      mensaje += `• *Relleno:* ${encodeURIComponent(estado.relleno.nombre)}%0A`;
+      mensaje += `• *Extras:* ${estado.drip ? 'Drip Chocolate, ' : ''}${estado.fresas ? 'Fresas' : 'Sin extras'}%0A`;
+      mensaje += `• *Dedicatoria/Detalles:* ${encodeURIComponent(notas)}%0A%0A`;
+      mensaje += `💰 *Total Estimado:* ${encodeURIComponent(totalTxt)}%0A`;
+      mensaje += `📌 *Adelanto 50%:* ${encodeURIComponent(adelantoTxt)}%0A%0A`;
+      mensaje += `_Quedo atento a su confirmación y disponibilidad._`;
+
+      window.open(`https://wa.me/${MI_WHATSAPP}?text=${mensaje}`, "_blank");
+    });
+
+    // Inicializar primera vista
+    actualizarCalculos();
+  </script>
+</body>
+</html>
